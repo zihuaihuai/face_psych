@@ -53,7 +53,7 @@ class CE_Model(Basic_Model):
         feature_vector = self.net_encoder(input_part)
         self.feature_vector = feature_vector
         fake_part = self.net_decoder(feature_vector)
-        print(jt.reshape(self.feature_vector,(1,512)))
+        # print(jt.reshape(self.feature_vector,(1,512)))
         loss = self.criterion(fake_part, input_part.detach()) * 10
         loss = loss.reshape(1)
         return fake_part, self.loss_filter(loss)

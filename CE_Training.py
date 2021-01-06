@@ -1,3 +1,7 @@
+import jittor as jt
+jt.flags.use_cuda = 1
+
+
 import numpy as np
 from util.Visualizer import Visualizer
 import os
@@ -8,7 +12,6 @@ from collections import OrderedDict
 from options.train_options import TrainOptions
 import util.util as util
 from jittor.dataset import Dataset
-import jittor as jt
 from jittor import transform
 def make_dataset(dir):
     images = []
@@ -19,6 +22,7 @@ def make_dataset(dir):
     return images
 class AlignedDataset(Dataset):
     def initialize(self,root,is_sketch,part_sketch):
+        super().__init__(num_workers=0)
         self.part = {'bg': (0, 0, 512),
                      'eye1': (108, 156, 128),
                      'eye2': (255, 156, 128),
@@ -32,6 +36,7 @@ class AlignedDataset(Dataset):
         else:
             self.dirname = root + '/Images'
             self.file_paths = sorted(make_dataset(self.dirname))
+        
 
     def __getitem__(self, index):
         A_path = self.file_paths[index]
@@ -51,12 +56,11 @@ class AlignedDataset(Dataset):
         A_tensor = (A_tensor - 127.5) / 127.5
         A_tensor = np.expand_dims(A_tensor, axis=0)
         A_tensor = A_tensor.astype('float32')
-        A_tensor = transform.to_tensor(jt.array(A_tensor))
+        A_tensor = transform.to_tensor(A_tensor)
         return A_tensor
     def __len__(self):
         return len(self.file_paths)
 
-jt.flags.use_cuda = 1
 opt = TrainOptions().parse()
 eye1_dataset = AlignedDataset()
 eye1_dataset.initialize('./Asian_Face', True, 'eye1')
@@ -135,7 +139,8 @@ for sequence in range(0, len(feature_list)):
             loss_dict = dict(zip(model.loss_names, losses))
 
             losses = loss_dict['Mse_Loss']
-            print(i, losses)
+            # print(i, losses)
+
             # encoder_optimizer.zero_grad()
             # decoder_optimizer.zero_grad()
 
@@ -150,7 +155,7 @@ for sequence in range(0, len(feature_list)):
             ############## Display results and errors ##########
             ### print out errors
             if total_steps % print_freq == print_delta:
-                errors = {k: v.data.item() if not isinstance(v, int) else v for k, v in loss_dict.items()}
+                errors = {k: v.item() if not isinstance(v, int) else v for k, v in loss_dict.items()}
                 t = (time.time() - iter_start_time) / print_freq
                 visualizer.print_current_errors(epoch, epoch_iter, errors, t)
                 visualizer.plot_current_errors(errors, total_steps)
